@@ -14,10 +14,14 @@ import shutil
 import zipfile
 
 # Root directory of the project
-ROOT_DIR = os.path.abspath("../Mask_RCNN")
+# ROOT_DIR = os.path.abspath("../Mask_RCNN")
+# sys.path.append(ROOT_DIR)
+
+ROOT_DIR = "./model/"
+
 print("VERS 0.2")
 # Import Mask RCNN
-sys.path.append(ROOT_DIR)  # To find local version of the library
+  # To find local version of the library
 from mrcnn.config import Config
 from mrcnn import utils
 import mrcnn.model as modellib
@@ -364,4 +368,5 @@ def test_random_image(test_model, dataset_val, inference_config):
                                 dataset_val.class_names, figsize=(8, 8))
 
 
+print("ok")
 

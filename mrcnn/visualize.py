@@ -12,6 +12,7 @@ import sys
 import random
 import itertools
 import colorsys
+import cv2
 
 import numpy as np
 from skimage.measure import find_contours
@@ -67,6 +68,21 @@ def random_colors(N, bright=True):
     colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
     random.shuffle(colors)
     return colors
+
+def get_mask_contours(mask):
+    #mask = masks[:, :, i]
+    # Mask Polygon
+    # Pad to ensure proper polygons for masks that touch image edges.
+    contours_mask = []
+    padded_mask = np.zeros(
+        (mask.shape[0] + 2, mask.shape[1] + 2), dtype=np.uint8)
+    padded_mask[1:-1, 1:-1] = mask
+    contours = find_contours(padded_mask, 0.5)
+    for verts in contours:
+        # Subtract the padding and flip (y, x) to (x, y)
+        verts = np.fliplr(verts) - 1
+        contours_mask.append(np.array(verts, np.int32))
+    return contours_mask
 
 
 def apply_mask(image, mask, color, alpha=0.5):
@@ -277,6 +293,19 @@ def draw_box(image, box, color):
     image[y1:y2, x1:x1 + 2] = color
     image[y1:y2, x2:x2 + 2] = color
     return image
+
+def draw_mask(img, pts, color, alpha=0.5):
+    h, w, _ = img.shape
+
+    overlay = img.copy()
+    output = img.copy()
+
+    cv2.fillPoly(overlay, pts, color)
+    output = cv2.addWeighted(overlay, alpha, output, 1 - alpha,
+                    0, output)
+    return output
+
+
 
 
 def display_top_masks(image, mask, class_ids, class_names, limit=4):
