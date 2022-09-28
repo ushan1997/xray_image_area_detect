@@ -2,3 +2,4 @@ dataset/
 mrcnn/
 model/
 mrcnnenv/
+__pycache__/
