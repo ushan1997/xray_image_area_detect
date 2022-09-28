@@ -1,7 +1,9 @@
 # xray_image_area_detect
 xray_image_area_detect
 
-virtualenv venv --python=python3.10.6
-venv\Scripts\activate
+virtualenv mrcnn --python=python3.6.4
+
+# activate virtual environment
+mrcnn\Scripts\activate
 
 pip install -r requirements.txt

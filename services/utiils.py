@@ -1,7 +1,8 @@
-#autor Gunaratne U.A
+# autor Gunaratne U.A
 # pip install -r ../Mask_RCNN/requirements.txt
 # All imports
 
+from flask import send_file
 import ipykernel
 import sys
 import os
@@ -17,32 +18,36 @@ from mrcnn.visualize import random_colors, get_mask_contours, draw_mask
 
 image_save_path = "./assets/output/"
 
+
 def prediction_disease(image_result, clinical_result):
     result = 0
-    
+
     if (image_result == "tb"):
-        result= result+2
-    elif(image_result == "ic"):
-        result= result-2
-    elif(image_result == "normal"):
-        result= result
-        
+        result = result+2
+    elif (image_result == "lc"):
+        result = result-2
+    elif (image_result == "normal"):
+        result = result
+
     if (clinical_result == "tb"):
-        result= result +1
-    elif(clinical_result == "ic"):
-        result= result-1
-    elif(clinical_result == "normal"):
-        result= result
-        
-    if(result>0):
+        result = result + 1
+    elif (clinical_result == "lc"):
+        result = result-1
+    elif (clinical_result == "normal"):
+        result = result
+
+    if (result > 0):
         return "tb"
-    elif(result<0):
-        return "ic"
-    elif(result == 0):
+    elif (result < 0):
+        return "lc"
+    elif (result == 0):
         return "normal"
 
-#pre process image reduse the noise of the image 
-def denoise_image(image_path , img_name):
+# pre process image reduse the noise of the image
+
+
+def denoise_image(image_path, img_name):
+    image_output_path = "./assets/output/denoise_image.png"
     read_image = cv2.imread(image_path, 1)
     print(read_image)
 
@@ -50,31 +55,31 @@ def denoise_image(image_path , img_name):
     plt.imsave(image_save_path + "gaussian_output.png", gaussian_image)
 
     median_image = cv2.medianBlur(read_image, 3)
-    plt.imsave(image_save_path + "median_output.png", median_image)
-    return gaussian_image;
+    plt.imsave(image_output_path, median_image)
+    return image_output_path
+
+# threshold the image for model
 
 
-#threshold the image for model
-def masdetection_image(gaussian_image):
-    image_output_image = "./assets/output/MasDetection.png"
+def masdetection_image(image_path, img_name):
+    image_output_path = "./assets/output/masdetection_image.png"
+    read_image = cv2.imread(image_path, 1)
+    print(read_image)
 
-    # image = cv2.imread(image_path, 1)
-    # # image = io.imread(file)
-    # print(image)
-    # plt.imshow(image, cmap="gray")
-    # plt.show()
+    rgb2gray_image = rgb2gray(read_image)
+    threshold = threshold_multiotsu(rgb2gray_image, classes=5)
 
-    image = rgb2gray(gaussian_image)
-    threshold = threshold_multiotsu(image, classes=5)
-
-    regions = np.digitize(image, bins=threshold)
+    regions = np.digitize(rgb2gray_image, bins=threshold)
 
     mas_image = img_as_ubyte(regions)
-    plt.imsave(image_output_image, mas_image)
-    return mas_image
+    plt.imsave(image_output_path, mas_image)
+    return image_output_path
 
-#disease area identification in tb
-def get_tb_segmantation(image_path ,TB_MODEL_PATH):
+# disease area identification in tb
+
+
+def get_tb_segmantation(image_path, TB_MODEL_PATH):
+    image_output_path = "./assets/output/tb_output.png"
     img = cv2.imread(image_path)
     test_model, inference_config = load_inference_model(1, TB_MODEL_PATH)
     image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -94,11 +99,14 @@ def get_tb_segmantation(image_path ,TB_MODEL_PATH):
             img = draw_mask(img, [cnt], colors[i])
     # cv2.Waitkey(10000)
     # cv2.imshow("img",img)
-    plt.imsave("step1_tb_output.png", img)
-    return img
+    plt.imsave(image_output_path, img)
+    return image_output_path
 
-#disease area identification in lc
-def get_lc_segmantation(image_path ,LC_MODEL_PATH):
+# disease area identification in lc
+
+
+def get_lc_segmantation(image_path, LC_MODEL_PATH):
+    image_output_path = "./assets/output/lc_output.png"
     img = cv2.imread(image_path)
     test_model, inference_config = load_inference_model(1, LC_MODEL_PATH)
     image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -118,5 +126,5 @@ def get_lc_segmantation(image_path ,LC_MODEL_PATH):
             img = draw_mask(img, [cnt], colors[i])
     # cv2.Waitkey(10000)
     # cv2.imshow("img",img)
-    plt.imsave(image_save_path+"step1_tb_output.png", img)
-    return img
+    plt.imsave(image_output_path, img)
+    return image_output_path
