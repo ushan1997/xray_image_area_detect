@@ -95,8 +95,8 @@ def get_tb_segmantation(image_path, TB_MODEL_PATH):
         mask = r["masks"][:, :, i]
         contours = get_mask_contours(mask)
         for cnt in contours:
-            cv2.polylines(img, [cnt], True, colors[i], 2)
-            img = draw_mask(img, [cnt], colors[i])
+            cv2.polylines(img, [cnt], True, (255, 0, 0), 2)
+            img = draw_mask(img, [cnt], (255, 0, 0))
     # cv2.Waitkey(10000)
     # cv2.imshow("img",img)
     plt.imsave(image_output_path, img)
@@ -122,8 +122,8 @@ def get_lc_segmantation(image_path, LC_MODEL_PATH):
         mask = r["masks"][:, :, i]
         contours = get_mask_contours(mask)
         for cnt in contours:
-            cv2.polylines(img, [cnt], True, colors[i], 2)
-            img = draw_mask(img, [cnt], colors[i])
+            cv2.polylines(img, [cnt], True, (255, 0, 0), 2)
+            img = draw_mask(img, [cnt], (255, 0, 0))
     # cv2.Waitkey(10000)
     # cv2.imshow("img",img)
     plt.imsave(image_output_path, img)
