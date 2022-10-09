@@ -1,7 +1,7 @@
 # @author Gunaratne U.A
 # @email it19753140@my.sliit.lk
 #
-from flask import Flask, render_template,  request, make_response, jsonify,Response
+from flask import Flask, render_template,  request, make_response, jsonify, Response
 from werkzeug.utils import secure_filename
 import os
 import sys
@@ -24,49 +24,56 @@ def test_api():
 @app.route('/areadt/processimage', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        file = request.files['file']
-        # create a secure filename
-        image_result = request.form['image_result']
-        clinical_result = request.form['clinical_result']
+        try:
+            file = request.files['file']
+            # create a secure filename
+            image_result = request.form['image_result']
+            clinical_result = request.form['clinical_result']
 
-        filename = secure_filename(file.filename)
-        # save file to /static/uploads
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        print(filepath)
-        file.save(filepath)
-        final_disease_result = prect_disease(image_result=image_result, clinical_result=clinical_result)
-        image_output_path = area_detect(final_disease_result=final_disease_result, image_path=filepath, img_name=filename)
-        print("type=====>")
-
-        fileImage =  "./assets/output/tb_output.png"
-        image = open(fileImage, 'rb')
-        image_read = image.read()
-        image_64_encode = base64.encodebytes(image_read) #encodestring also works aswell as decodestring
-
-        print('This is the image in base64: ' + str(image_64_encode))
-
-        return jsonify({
-            "message": "Image processed sucessfully",
-            "disease":str(image_64_encode)
-        })
+            filename = secure_filename(file.filename)
+            # save file to /static/uploads
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            print(filepath)
+            file.save(filepath)
+            final_disease_result = prect_disease(
+                image_result=image_result, clinical_result=clinical_result)
+            image_output_path = area_detect(
+                final_disease_result=final_disease_result, image_path=filepath, img_name=filename)
+            print(image_output_path)
+            fileImage = image_output_path
+            image = open(fileImage, 'rb')
+            image_read = image.read()
+            image_64_encode = base64.encodebytes(image_read)
+            utfResult = image_64_encode.decode("utf-8")
+            # return json.dumps(str(utfResult.strip()))
+            return jsonify({
+                "message": "Image processed sucessfully",
+                "code":200,
+                "resourse": str(utfResult.strip())
+            })
+        except:
+            jsonify({
+                "message": "Something went wrong",
+                "code":500,
+                "resourse": ""
+            })
 
 @app.route('/areadt/image', methods=['POST'])
 def get_file():
-        fileImage =  "./assets/output/lc_output.png"
-        image = open(fileImage, 'rb')
-        image_read = image.read()
-        image_64_encode = base64.encodebytes(image_read) 
-        utfResult =image_64_encode.decode("utf-8")
-        print('utfResult===========>'+utfResult)
-        print(type(utfResult))
-        print(json.dumps(str(utfResult.strip())))
-        # return json.dumps(str(utfResult.strip()))
-        return jsonify({
-            "message": "Image processed sucessfully",
-            "disease": str(utfResult.strip())
-        })
+    fileImage = "./assets/output/lc_output.png"
+    image = open(fileImage, 'rb')
+    image_read = image.read()
+    image_64_encode = base64.encodebytes(image_read)
+    utfResult = image_64_encode.decode("utf-8")
+    print(str(utfResult.strip()))
+    # return json.dumps(str(utfResult.strip()))
+    return jsonify({
+        "message": "Image processed sucessfully",
+        "disease": str(utfResult.strip())
+    })
     # print(json.dumps(data))
     # return json.dumps(data)
+
 
 @app.route('/areadt/identify', methods=['POST'])
 def identify_disease():
@@ -86,4 +93,4 @@ def insert():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=6000)
+    app.run(debug=True, port=5000)

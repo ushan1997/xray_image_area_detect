@@ -1,9 +1,17 @@
-# xray_image_area_detect
+# X-Ray_image_area_detect
 xray_image_area_detect
 
-virtualenv mrcnn --python=python3.6.4
+# Activate virtual environment
+virtualenv venv --python=python3.6.4
 
-# activate virtual environment
-mrcnn\Scripts\activate
+venv\Scripts\activate
 
+# Install Requirements
 pip install -r requirements.txt
+
+pip freeze -> requirements.txt
+# run the project
+flask run
+
+# In ngrok.exe run
+ngrok http 5000
