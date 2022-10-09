@@ -1,7 +1,9 @@
 dataset/
 Mask_RCNN/
 model/
-venv/
+mrcnnenv/
 ngrok.exe
 assets/output/
 assets/upload/
+
+__pycache__/
