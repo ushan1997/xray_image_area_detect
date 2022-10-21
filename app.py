@@ -18,8 +18,11 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/areadt/testapi', methods=['GET'])
 def test_api():
-    return "server started ."
-
+    return jsonify({
+        "message": "server started .",
+        "code":200,
+        "resourse": 1
+    })
 
 @app.route('/areadt/processimage', methods=['GET', 'POST'])
 def upload_file():
@@ -57,6 +60,7 @@ def upload_file():
                 "code":500,
                 "resourse": ""
             })
+
 
 @app.route('/areadt/image', methods=['POST'])
 def get_file():
