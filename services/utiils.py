@@ -51,9 +51,6 @@ def denoise_image(image_path, img_name):
     read_image = cv2.imread(image_path, 1)
     print(read_image)
 
-    gaussian_image = cv2.GaussianBlur(read_image, (3, 3), 0)
-    plt.imsave(image_save_path + "gaussian_output.png", gaussian_image)
-
     median_image = cv2.medianBlur(read_image, 3)
     plt.imsave(image_output_path, median_image)
     return image_output_path
@@ -161,3 +158,46 @@ def save_polygon_as_json(poly_array):
 
     with open(json_output_path, 'w') as outfile:
         json.dump(encodedNumpyData, outfile)
+
+# get mask cordinates for augmnted reality
+def get_mask(json_path, bulb_cordinates):
+    print("###### stared save polygon to json #######")
+    with open(json_path) as json_file:
+        data = json.load(json_file)
+        decodedArrays = json.loads(data)
+        array = np.asarray(decodedArrays["array"])
+
+        bulb_arr = bulb_cordinates
+
+        cod_json = []
+        #bulb cordinates populate
+        if(len(bulb_arr)>0):
+            for l in range(len(bulb_arr)):
+                #polygon array
+                if(len(array)>0):
+                    for i in range(len(array)):
+                        for j in range(len(array[i])):
+                            diff =[]
+                            for k in range(len(array[i][j])):
+                                #y value equalization
+                                if(bulb_arr[l][1]== array[i][j][k][1]): 
+                                    print("check y value same with polygon ",array[i][j][k])
+                                    diff.append(array[i][j][k])
+                                    if(len(diff)>0):
+                                        length_diff = len(diff)
+                                        #x value range check
+                                        if diff[0][0] <= bulb_arr[l][0] <= diff[length_diff-1][0]:
+                                            cod_json.append(bulb_arr[l])    
+
+        print(cod_json)            
+        #check duplicate cordinates
+        set_bulb_arr = []
+        for i in range(len(bulb_arr)):
+            for j in range(len(cod_json)):
+                if(bulb_arr[i]==cod_json[j]):
+                    set_bulb_arr.append(i+1)
+
+        mylist = sorted(set(set_bulb_arr))
+        print(mylist)
+    return mylist
+

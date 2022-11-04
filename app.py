@@ -61,6 +61,22 @@ def upload_file():
                 "resourse": ""
             })
 
+@app.route('/areadt/getmask',methods=['GET'])
+def get_mask():
+    try:
+        bulb_arr = get_mask_service()
+        return jsonify({
+            'message': "OK",
+            'code':200,
+            'resourse': bulb_arr,
+            })
+
+    except:
+            jsonify({
+                "message": "Something went wrong",
+                "code":500,
+                "resourse": ""
+            })
 
 @app.route('/areadt/image', methods=['POST'])
 def get_file():
