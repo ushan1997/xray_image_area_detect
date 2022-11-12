@@ -16,10 +16,12 @@ from skimage import data, io, img_as_ubyte
 from skimage.filters import threshold_multiotsu
 from skimage.color import rgb2gray
 from mrcnn.m_rcnn import *
+from PIL import Image
 from mrcnn.visualize import random_colors, get_mask_contours, draw_mask
 
 image_save_path = "./assets/output/"
 
+#predecting disease
 def prediction_disease(image_result, clinical_result):
     result = 0
 
@@ -59,6 +61,7 @@ def denoise_image(image_path, img_name):
 def masdetection_image(image_path, img_name):
     print("####### masdetection_image the image ########")
     image_output_path = "./assets/output/masdetection_image.png"
+    image_400_path = "./assets/output/image_400.png"
     read_image = cv2.imread(image_path, 1)
     print(read_image)
 
@@ -69,7 +72,13 @@ def masdetection_image(image_path, img_name):
 
     mas_image = img_as_ubyte(regions)
     plt.imsave(image_output_path, mas_image)
-    return image_output_path
+    
+    image = Image.open(image_output_path)
+    print(f"Original size : {image.size}") # 5464x3640
+
+    sunset_resized = image.resize((400, 400))
+    sunset_resized.save(image_400_path)
+    return image_400_path
 
 # disease area identification in tb
 def get_tb_segmantation(image_path, TB_MODEL_PATH):
