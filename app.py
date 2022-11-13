@@ -10,22 +10,14 @@ from services.area_detect_service import *
 import json
 import base64
 import mysql.connector
+from config.db_config import *
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = 'assets/upload'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-MyDB = mysql.connector.connect(
-    host="127.0.0.2",
-    user="root",
-    password="root",
-    database="cxr_scan"
-)
-myCursor = MyDB.cursor()
 # api for test the application
-
-
 @app.route('/areadt/testapi', methods=['GET'])
 def test_api():
     return jsonify({
@@ -46,7 +38,7 @@ def upload_file():
 
             # get image file name and image path and save
             filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], "uploaded.png")
             file.save(filepath)
 
             # predict the disease type
@@ -54,7 +46,7 @@ def upload_file():
                 image_result=image_result, clinical_result=clinical_result)
 
             image_output_path = area_detect(
-                final_disease_result=final_disease_result, image_path=filepath, img_name=filename)
+                final_disease_result=final_disease_result, image_path=filepath, img_name="uploaded.png")
             print(image_output_path)
             fileImage = image_output_path
             image = open(fileImage, 'rb')
@@ -74,7 +66,47 @@ def upload_file():
                 "resourse": ""
             })
 
+# api for get the disese spread area in utf
+@app.route('/areadt/processimageinutf', methods=['GET', 'POST'])
+def upload_file_utf():
+    if request.method == 'POST':
+        try:
+            # get request parameters
+            file = request.form['file']
+            image_result = request.form['image_result']
+            clinical_result = request.form['clinical_result']
 
+            # get image file name and image path and save
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], "uploaded.png")
+            file.save(filepath)
+
+            # predict the disease type
+            final_disease_result = prect_disease(
+                image_result=image_result, clinical_result=clinical_result)
+
+            image_output_path = area_detect(
+                final_disease_result=final_disease_result, image_path=filepath, img_name="uploaded.png")
+            print(image_output_path)
+            fileImage = image_output_path
+            image = open(fileImage, 'rb')
+            image_read = image.read()
+            image_64_encode = base64.encodebytes(image_read)
+            utfResult = image_64_encode.decode("utf-8")
+            # return json.dumps(str(utfResult.strip()))
+            return jsonify({
+                "message": "Image processed sucessfully",
+                "code": 200,
+                "resourse": str(utfResult.strip())
+            })
+        except Exception as e:
+            jsonify({
+                "message": str(e),
+                "code": 500,
+                "resourse": ""
+            })
+
+# api for get the spreded area masks
 @app.route('/areadt/getmask', methods=['GET'])
 def get_mask():
     try:
@@ -84,13 +116,14 @@ def get_mask():
             'code': 200,
             'resourse': bulb_arr,
         })
-    except:
+    except Exception as e:
         jsonify({
-            "message": "Something went wrong",
+            "message": str(e),
             "code": 500,
             "resourse": ""
         })
 
+# api for test image convert t base64 string
 @app.route('/areadt/image', methods=['POST'])
 def get_file():
     fileImage = "./assets/output/lc_output.png"
@@ -104,38 +137,72 @@ def get_file():
         "message": "Image processed sucessfully",
         "disease": str(utfResult.strip())
     })
-    # print(json.dumps(data))
-    # return json.dumps(data)
 
+# api for insert image to db
+@app.route('/areadt/insertimage', methods=['GET', 'POST'])
+def db_upload_file():
+    if request.method == 'POST':
+        try:
+            # get request parameters
+            file = request.files['file']
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
 
-@app.route('/areadt/identify', methods=['POST'])
-def identify_disease():
-    image_result = request.form['image_result']
-    clinical_result = request.form['clinical_result']
-    return prect_disease(image_result=image_result, clinical_result=clinical_result)
+            disease = request.form['disease']
 
+            MyDB = create_con()
+            myCursor = MyDB.cursor()
 
-@app.route("/insert", methods=["POST"])
-def insert():
-    data = request.get_json()
-    print("Json Obj", data)
-    name = data["name"]
-    print("name", name)
-    result = save_activity_details((name,))
-    return make_response(jsonify({"name": result}), 200)
+            # myCursor.execute("CREATE TABLE IF NOT EXISTS disease_images (id INTEGER(45) NOT NULL AUTO_INCREMENT PRIMARY KEY,image LONGBLOB NOT NULL")
+            myCursor.execute(
+                "CREATE TABLE IF NOT EXISTS disease_images (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,image LONGBLOB NOT NULL,disease VARCHAR(255))")
+            with open(filepath, 'rb') as File:
+                BinaryData = File.read()
 
+            selectSQLQry = "SELECT * FROM disease_images"
+            myCursor.execute(selectSQLQry)
+            myResult = myCursor.fetchall()
+
+            if(len(myResult)>0):
+                updateSQLQry = "UPDATE disease_images SET image =  %s, disease =%s WHERE id = 1"
+                val = (BinaryData, disease)
+                myCursor.execute(updateSQLQry, val)
+                MyDB.commit()
+            else:
+                 insertSQLQry = "INSERT INTO disease_images (image,disease) VALUES (%s, %s)"
+                 val = (BinaryData, disease)
+                 myCursor.execute(insertSQLQry, val)
+                 MyDB.commit()
+
+            # SQLState2 = "SELECT * FROM disease_images WHERE id='{0}'"
+            # myCursor.execute(SQLState2.format(str(1)))
+            # myResult = myCursor.fetchone()[1]
+            # print(myResult)
+            # storeFilePath = "assets/output/img{0}.png".format(str(1))
+            # with open(storeFilePath,'wb') as File:
+            #     File.write(myResult)
+            #     File.close()
+            myCursor.close()
+            return jsonify({
+                "message": "Image Inserted sucessfully",
+                 "code": 200,
+            })
+
+        except Exception as e:
+            jsonify({
+                "message": str(e),
+                "code": 500,
+            })
+
+# api for get image to db
 @app.route("/areadt/getimage", methods=['GET'])
 def get_images_from_db():
     try:
-        MyDB = mysql.connector.connect(
-                    host="127.0.0.2",
-                    user="root",
-                    password="root",
-                    database="cxr_scan"
-        )
+        MyDB = create_con()
         myCursor = MyDB.cursor()
-        SQLState2 = "SELECT * FROM disease_images WHERE id=1"
-        myCursor.execute(SQLState2)
+        selectSQLQry = "SELECT * FROM disease_images"
+        myCursor.execute(selectSQLQry)
         data = myCursor.fetchall()
         image = data[0][1]
         disease =data[0][2]
@@ -145,79 +212,16 @@ def get_images_from_db():
         return jsonify({
             "code": 200,
             "image": str(utfResult.strip()),
-            "disease":disease
+            "disease":disease,
+            "message": "Image processed sucessfully",
         })
-    except:
+    except Exception as e:
         jsonify({
             "code": 500,
             "image": "",
-            "disease": ""
+            "disease": "",
+            "message": str(e)
     })
-
-    # print(len(myresult))
-    # if(length > 0):
-    #     id = length -1
-    #     getPatercular = "SELECT * FROM disease_images WHERE id='{0}'"
-    #     myCursor.execute(getPatercular.format(str(id)))
-    #     myResult = myCursor.fetchone()[1]
-    #     print(myResult)
-
-
-
-
-
-@app.route('/areadt/insertimage', methods=['GET', 'POST'])
-def db_upload_file():
-    if request.method == 'POST':
-        try:
-            # get request parameters
-            file = request.files['file']
-            MyDB = mysql.connector.connect(
-                host="127.0.0.2",
-                user="root",
-                password="root",
-                database="cxr_scan"
-            )
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            print("filepath==>"+filepath)
-            myCursor = MyDB.cursor()
-
-            # myCursor.execute("CREATE TABLE IF NOT EXISTS disease_images (id INTEGER(45) NOT NULL AUTO_INCREMENT PRIMARY KEY,image LONGBLOB NOT NULL")
-            myCursor.execute(
-                "CREATE TABLE IF NOT EXISTS disease_images (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,image LONGBLOB NOT NULL,disease VARCHAR(255))")
-            with open(filepath, 'rb') as File:
-                BinaryData = File.read()
-            SQLState3 = "SELECT * FROM disease_images"
-
-            SQLState = "INSERT INTO disease_images (image,disease) VALUES (%s, %s)"
-            val = (BinaryData, "tb")
-            myCursor.execute(SQLState, val)
-            MyDB.commit()
-
-            SQLState2 = "SELECT * FROM disease_images WHERE id='{0}'"
-            myCursor.execute(SQLState2.format(str(1)))
-            myResult = myCursor.fetchone()[1]
-            print(myResult)
-            # storeFilePath = "assets/output/img{0}.png".format(str(1))
-            # with open(storeFilePath,'wb') as File:
-            #     File.write(myResult)
-            #     File.close()
-
-
-
-            return jsonify({
-                "message": "Image processed sucessfully",
-            })
-
-        except:
-            jsonify({
-                "message": "Something went wrong",
-                "code": 500,
-                "resourse": ""
-            })
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
