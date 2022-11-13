@@ -2,13 +2,13 @@ import mysql.connector
 import json
 
 def create_con():
-    db = mysql.connector.connect(
-        database="cxr_scan",
-        host="localhost",
-        user="root",
-        password="root"
+    MyDB = mysql.connector.connect(
+    host="127.0.0.2",
+    user="root",
+    password="root",
+    database="cxr_scan"
     )
-    return db
+    return MyDB
 
 def insert(sql_query, args):
     db = create_con()
