@@ -9,6 +9,8 @@ from services.query_service import *
 from services.area_detect_service import *
 import json
 import base64
+import io
+import PIL.Image as Image
 import mysql.connector
 from config.db_config import *
 
@@ -67,7 +69,7 @@ def upload_file():
             })
 
 # api for get the disese spread area in utf
-@app.route('/areadt/processimageinutf', methods=['GET', 'POST'])
+@app.route('/areadt/userimageprocess', methods=['GET', 'POST'])
 def upload_file_utf():
     if request.method == 'POST':
         try:
@@ -77,23 +79,24 @@ def upload_file_utf():
             clinical_result = request.form['clinical_result']
 
             # get image file name and image path and save
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], "uploaded.png")
-            file.save(filepath)
-
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], "user_uploaded.png")
+            utfResult = file.encode("utf-8")
+            image_64_encode = base64.decodebytes(utfResult)
+            image = Image.open(io.BytesIO(image_64_encode))
+            image.save(filepath)
+            
             # predict the disease type
             final_disease_result = prect_disease(
                 image_result=image_result, clinical_result=clinical_result)
 
             image_output_path = area_detect(
-                final_disease_result=final_disease_result, image_path=filepath, img_name="uploaded.png")
+                final_disease_result=final_disease_result, image_path=filepath, img_name="user_uploaded.png")
             print(image_output_path)
             fileImage = image_output_path
             image = open(fileImage, 'rb')
             image_read = image.read()
             image_64_encode = base64.encodebytes(image_read)
             utfResult = image_64_encode.decode("utf-8")
-            # return json.dumps(str(utfResult.strip()))
             return jsonify({
                 "message": "Image processed sucessfully",
                 "code": 200,
@@ -139,7 +142,7 @@ def get_file():
     })
 
 # api for insert image to db
-@app.route('/areadt/insertimage', methods=['GET', 'POST'])
+@app.route('/areadt/insertimagedb', methods=['GET', 'POST'])
 def db_upload_file():
     if request.method == 'POST':
         try:
@@ -175,14 +178,6 @@ def db_upload_file():
                  myCursor.execute(insertSQLQry, val)
                  MyDB.commit()
 
-            # SQLState2 = "SELECT * FROM disease_images WHERE id='{0}'"
-            # myCursor.execute(SQLState2.format(str(1)))
-            # myResult = myCursor.fetchone()[1]
-            # print(myResult)
-            # storeFilePath = "assets/output/img{0}.png".format(str(1))
-            # with open(storeFilePath,'wb') as File:
-            #     File.write(myResult)
-            #     File.close()
             myCursor.close()
             return jsonify({
                 "message": "Image Inserted sucessfully",
@@ -196,7 +191,7 @@ def db_upload_file():
             })
 
 # api for get image to db
-@app.route("/areadt/getimage", methods=['GET'])
+@app.route("/areadt/getimagedb", methods=['GET'])
 def get_images_from_db():
     try:
         MyDB = create_con()
